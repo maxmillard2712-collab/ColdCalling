@@ -95,12 +95,16 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(24px,5.5vw,38px);m
 
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--gold);color:#2a1606;padding:8px 16px;z-index:30;display:flex;gap:14px;align-items:center;max-width:calc(100% - 32px);font-size:20px;box-shadow:0 4px 0 var(--gold-dk)}
 .toast button{background:#2a1606;color:var(--gold);border:0;padding:4px 10px;font-family:var(--display);font-size:11px}
+.believe{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:28;padding:0 16px}
+.believe span{font-family:var(--display);font-size:clamp(44px,13vw,140px);color:var(--gold);letter-spacing:.06em;text-shadow:4px 4px 0 var(--velvet),8px 8px 0 var(--velvet-dk);background:rgba(18,10,20,.82);padding:.15em .35em;box-shadow:0 -6px 0 var(--gold),0 6px 0 var(--gold),-6px 0 0 var(--gold),6px 0 0 var(--gold);animation:believe 1.4s steps(7) both}
+@keyframes believe{0%{transform:scale(.3);opacity:0}15%{transform:scale(1.08);opacity:1}25%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.believe span{animation:fadeonly 1.4s both}@keyframes fadeonly{0%,80%{opacity:1}100%{opacity:0}}}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:25;image-rendering:pixelated}
 @media (prefers-reduced-motion:reduce){.seat.drop canvas{animation:none}}
-</head>
-<body>
 [hidden]{display:none!important}
 </style>
+</head>
+<body>
 
 <div class="wrap">
   <header class="marquee px">
@@ -152,6 +156,7 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(24px,5.5vw,38px);m
     </div>
   </div>
 </div>
+<div class="believe" id="believe" aria-live="polite"></div>
 <canvas id="confetti"></canvas>
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button id="undoBtn" hidden>UNDO</button></div>
 
@@ -221,7 +226,7 @@ function useLocal(){
 async function init(){
   render();
   let db=null;
-  try{db=window.claude&&window.claude.use?await window.claude.use("db"):null}catch(e){db=null}
+  try{db=window.claude&&window.claude.use?await Promise.race([window.claude.use("db"),new Promise(r=>setTimeout(()=>r(null),4000))]):null}catch(e){db=null}
   if(!db){useLocal();return}
   const col=db.collection("calls");
   store={
@@ -290,14 +295,20 @@ function render(){
 }
 
 /* ---------- Actions ---------- */
+function believe(word){
+  const host=$("believe"); host.innerHTML="";
+  const s=document.createElement("span"); s.textContent=word; host.appendChild(s);
+  clearTimeout(believe.h); believe.h=setTimeout(()=>{host.innerHTML=""},1500);
+}
 async function addAt(seat){
+  if(!store) await ready;
   const before=dayCalls(today()).length;
   const c={id:"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),day:today(),seat,ts:Date.now(),look:newLook(),note:"",meeting:false};
   justAdded=c.id;
   try{await store.put(c)}catch(e){toast("That seat didn't save. Try again.");return}
   const n=before+1;
-  if(n===goal){celebrate(true);toast("FULL HOUSE! Goal hit.",c.id)}
-  else{const row=n%PER_ROW===0; clap(row?.6:.25); if(row)celebrate(false); toast(row?`Row filled! ${n} tonight`:`Seat ${seat} filled · ${n} tonight`,c.id)}
+  if(n===goal){celebrate(true);believe("FULL HOUSE")}
+  else{const row=n%PER_ROW===0; clap(row?.6:.25); if(row)celebrate(false); believe("BELIEVE")}
 }
 $("addBtn").onclick=()=>addAt(nextFree(dayCalls(today())));
 
@@ -363,7 +374,7 @@ function celebrate(big){
   let f=0;(function step(){x.clearRect(0,0,cv.width,cv.height);for(const p of ps){p.x+=p.vx;p.y+=p.vy;x.fillStyle=p.c;x.fillRect(Math.round(p.x),Math.round(p.y),1+(f>>3&1),1)}if(++f<200)requestAnimationFrame(step);else x.clearRect(0,0,cv.width,cv.height)})();
 }
 
-init();
+const ready=init();
 </script>
 </body>
 </html>
