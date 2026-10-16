@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Full House</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=VT323&display=swap">
+<style>
+/* Layout: an 8-bit theatre. Marquee, pixel curtain and stage, rows of sprite seats; a click seats a pixel person. */
+:root{
+  --house:#120a14;
+  --panel:#21142a;
+  --line:#3a2546;
+  --velvet:#8a1c32;
+  --velvet-dk:#5a1022;
+  --gold:#f4c542;
+  --gold-dk:#b8862a;
+  --ivory:#f6ead2;
+  --dim:#a68fae;
+  --display:"Silkscreen","Courier New",monospace;
+  --body:"VT323","Courier New",monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--house);color:var(--ivory)}
+body{margin:0;font-family:var(--body);font-size:20px;line-height:1.25;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.px{border:0;box-shadow:0 -4px 0 0 var(--c,var(--line)),0 4px 0 0 var(--c,var(--line)),-4px 0 0 0 var(--c,var(--line)),4px 0 0 0 var(--c,var(--line))}
+
+/* Marquee */
+.marquee{--c:var(--gold);background:var(--panel);padding:14px 18px;margin:4px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;position:relative}
+.marquee::after{content:"";position:absolute;left:8px;right:8px;top:-12px;height:4px;background:repeating-linear-gradient(90deg,var(--gold) 0 4px,transparent 4px 12px)}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(24px,5.5vw,38px);margin:0;letter-spacing:.04em;color:var(--gold);text-shadow:3px 3px 0 var(--velvet-dk)}
+.night{display:flex;align-items:center;gap:8px}
+.night button{background:var(--house);width:34px;height:34px;font-family:var(--display);font-size:14px;--c:var(--line)}
+.night button:disabled{opacity:.3;cursor:default}
+#nightLabel{min-width:120px;text-align:center;font-size:22px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.stat .k{font-family:var(--display);font-size:10px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase}
+.stat .v{font-size:36px;line-height:1;font-variant-numeric:tabular-nums}
+.stat .v small{font-size:22px;color:var(--dim)}
+.bar{display:flex;gap:2px;margin-top:6px;flex-wrap:wrap}
+.bar i{width:8px;height:10px;background:var(--line)}
+.bar i.on{background:var(--gold)}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Hall */
+.hall{background:var(--house);padding-bottom:20px;overflow:hidden;--c:var(--line);margin:4px}
+.curtain{height:44px;background:
+  linear-gradient(var(--gold) 0 4px,transparent 4px),
+  repeating-linear-gradient(90deg,var(--velvet) 0 12px,var(--velvet-dk) 12px 16px);}
+.valance{height:12px;background:repeating-linear-gradient(90deg,var(--velvet) 0 16px,transparent 16px 24px)}
+.stage{margin:6px auto 0;width:80%;height:28px;background:repeating-linear-gradient(90deg,#6b4423 0 20px,#5a381c 20px 24px);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:11px;color:#f1c98a;letter-spacing:.3em;box-shadow:0 4px 0 #3a2410}
+.rows{display:flex;flex-direction:column;gap:6px;margin-top:26px;align-items:center}
+.row{display:flex;align-items:flex-end;gap:4px}
+.rowlbl{font-family:var(--display);font-size:10px;color:var(--dim);width:14px;text-align:center;align-self:center}
+.aisle{width:12px}
+.seat{--w:40px;width:var(--w);height:calc(var(--w)*4/3);padding:0;border:0;background:none;position:relative}
+.seat canvas{width:100%;height:100%;image-rendering:pixelated;display:block}
+.seat.empty:hover canvas{filter:brightness(1.4)}
+.seat.drop canvas{animation:drop .4s steps(4) both}
+@keyframes drop{0%{transform:translateY(-60%);opacity:0}100%{transform:none;opacity:1}}
+.seat.has:hover canvas{transform:translateY(-2px)}
+.seat .dot{position:absolute;top:-4px;right:-2px;width:6px;height:6px;background:var(--ivory)}
+@media (max-width:760px){.seat{--w:32px}}
+@media (max-width:640px){.seat{--w:26px}.row{gap:3px}.aisle{width:8px}}
+@media (max-width:520px){.seat{--w:18px}.row{gap:2px}.aisle{width:6px}.rowlbl{width:10px;font-size:8px}}
+.hint{text-align:center;color:var(--dim);margin:14px 0 0;font-size:20px}
+
+.actions{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.btn{background:var(--panel);padding:10px 18px;font-family:var(--display);font-size:13px;--c:var(--line);margin:4px}
+.btn.gold{background:var(--gold);color:#2a1606;--c:var(--gold-dk)}
+
+.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--dim);font-size:18px;align-items:center}
+.foot label{display:flex;gap:8px;align-items:center}
+.foot input{width:64px;background:var(--panel);border:0;box-shadow:0 0 0 3px var(--line);padding:4px 8px;color:var(--ivory);font:inherit}
+
+/* Note panel */
+.scrim{position:fixed;inset:0;background:rgba(10,4,12,.75);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));z-index:20}
+.card{background:var(--panel);width:100%;max-width:400px;padding:18px;display:flex;flex-direction:column;gap:12px;--c:var(--gold);margin:4px}
+.card h3{margin:0;font-family:var(--display);font-weight:400;font-size:16px;color:var(--gold);display:flex;align-items:center;gap:12px}
+.card h3 canvas{width:36px;height:48px;image-rendering:pixelated}
+.card textarea{font:inherit;background:var(--house);color:var(--ivory);border:0;box-shadow:0 0 0 3px var(--line);padding:8px;min-height:80px;resize:vertical}
+.card .lbl{font-family:var(--display);font-size:10px;color:var(--dim)}
+.toggle{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;text-align:left}
+.toggle b{width:20px;height:20px;background:var(--house);box-shadow:0 0 0 3px var(--line);display:inline-block}
+.toggle[aria-pressed="true"] b{background:var(--gold)}
+.cact{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cact .del{background:none;border:0;color:#ff7a8a;text-decoration:underline;padding:4px}
+.cact .sp{flex:1}
+
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--gold);color:#2a1606;padding:8px 16px;z-index:30;display:flex;gap:14px;align-items:center;max-width:calc(100% - 32px);font-size:20px;box-shadow:0 4px 0 var(--gold-dk)}
+.toast button{background:#2a1606;color:var(--gold);border:0;padding:4px 10px;font-family:var(--display);font-size:11px}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:25;image-rendering:pixelated}
+@media (prefers-reduced-motion:reduce){.seat.drop canvas{animation:none}}
+</head>
+<body>
+[hidden]{display:none!important}
+</style>
+
+<div class="wrap">
+  <header class="marquee px">
+    <h1>FULL HOUSE</h1>
+    <div class="night">
+      <button class="px" id="prev" aria-label="Previous day">&lt;</button>
+      <span id="nightLabel">Tonight</span>
+      <button class="px" id="next" aria-label="Next day">&gt;</button>
+    </div>
+  </header>
+
+  <section class="stats" aria-label="Numbers">
+    <div class="stat"><div class="k">Tonight</div><div class="v"><span id="sCalls">0</span><small>/<span id="sGoal">75</span></small></div><div class="bar" id="bar"></div></div>
+    <div class="stat"><div class="k">Meetings</div><div class="v" id="sMeet">0</div></div>
+    <div class="stat"><div class="k">Day streak</div><div class="v" id="sStreak">0</div></div>
+    <div class="stat"><div class="k">All time</div><div class="v" id="sAll">0</div></div>
+  </section>
+
+  <section class="hall px" aria-label="Theatre">
+    <div class="curtain"></div>
+    <div class="valance"></div>
+    <div class="stage">STAGE</div>
+    <div class="rows" id="rows"></div>
+    <p class="hint" id="hint">Made a call? Click a seat.</p>
+  </section>
+
+  <div class="actions">
+    <button class="btn gold px" id="addBtn">+ Seat next caller</button>
+    <button class="btn px" id="soundBtn" aria-pressed="true">Sound: on</button>
+  </div>
+
+  <footer class="foot">
+    <label for="goalInput">Daily goal <input id="goalInput" type="number" min="1" max="200" value="75"></label>
+    <span id="saveNote">Loading…</span>
+  </footer>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="card px" role="dialog" aria-modal="true" aria-labelledby="cTitle">
+    <h3 id="cTitle"><canvas id="cSprite" width="12" height="16"></canvas><span id="cSeat">Seat A1</span></h3>
+    <span class="lbl">WHAT THEY SAID (OPTIONAL)</span>
+    <textarea id="cNote" aria-label="What they said" placeholder="Name, company, their line..."></textarea>
+    <button class="toggle" id="cMeet" aria-pressed="false" type="button"><b></b> Meeting booked</button>
+    <div class="cact">
+      <button class="del" id="cDel" type="button">Remove</button>
+      <span class="sp"></span>
+      <button class="btn px" id="cClose" type="button">Close</button>
+      <button class="btn gold px" id="cSave" type="button">Save</button>
+    </div>
+  </div>
+</div>
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast" hidden><span id="toastMsg"></span><button id="undoBtn" hidden>UNDO</button></div>
+
+<script>
+const PER_ROW=15, MIN_ROWS=5, LETTERS="ABCDEFGHJKLMNPQRSTUVWXYZ";
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const dayKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today=()=>dayKey(new Date());
+let viewDay=today(), calls=[], goal=75, store=null, soundOn=true, justAdded=null, open=null;
+
+/* ---------- Sprites (12 x 16) ---------- */
+const SEAT=[
+"............","............","............","............","............","............","............",
+"..vvvvvvvv..",".vVVVVVVVVv.",".vVVVVVVVVv.",".vVVVVVVVVv.",".vVVVVVVVVv.",
+"vvvvvvvvvvvv","vVVVVVVVVVVv","vVVVVVVVVVVv",".k........k."];
+const BODY=[
+"............","............",
+"....hhhh....","...hhhhhh...","...hssssh...","...sesses...","...ssssss...","....smms....",
+"...ttsstt...","..tttttttt..",".tttttttttt.",".tttttttttt.",
+".s........s.","............","............","............"];
+const HAIR={
+  short:[[2,4,7],[3,3,8],[4,3,3],[4,8,8]],
+  long:[[2,4,7],[3,3,8],[4,3,3],[4,8,8],[5,2,2],[5,9,9],[6,2,2],[6,9,9],[7,2,3],[7,8,9]],
+  spiky:[[1,4,4],[1,6,6],[1,8,8],[2,3,8],[3,3,8],[4,3,3],[4,8,8]],
+  bun:[[0,5,6],[1,5,6],[2,4,7],[3,3,8],[4,3,3],[4,8,8]],
+  bald:[[3,4,7]],
+  cap:[[2,4,7],[3,3,9]]
+};
+const SKINS=["#f2c8a0","#e0a878","#c68a5e","#9b6440","#6e4428","#f6d7b8"];
+const HAIRS=["#2a1a12","#5a3518","#c9862e","#e9d06a","#9b2f2a","#d9d2c8","#3b3b4a","#7a4fb0"];
+const SHIRTS=["#3fa29a","#5b7fd6","#e07a3c","#7cc35b","#d65b8e","#e8e2d0","#6b4fb0","#2f6f9f","#c43f3f"];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function newLook(){return {skin:pick(SKINS),hair:pick(HAIRS),shirt:pick(SHIRTS),style:pick(Object.keys(HAIR))}}
+
+function drawSeat(cv,c){
+  const x=cv.getContext("2d"); x.clearRect(0,0,12,16);
+  const col={v:"#5a1022",V:"#8a1c32",k:"#3a0a16"};
+  const paint=(grid,map)=>grid.forEach((r,y)=>[...r].forEach((ch,xx)=>{if(map[ch]){x.fillStyle=map[ch];x.fillRect(xx,y,1,1)}}));
+  paint(SEAT,col);
+  if(!c) return;
+  const L=c.look||newLook();
+  const shade=L.shirt;
+  paint(BODY,{s:L.skin,e:"#1a0e10",m:"#a0503a",t:shade,h:L.skin});
+  x.fillStyle=L.hair;
+  for(const [y,a,b] of (HAIR[L.style]||HAIR.short)) x.fillRect(a,y,b-a+1,1);
+  if(L.style==="cap"){x.fillStyle=shade;x.fillRect(3,2,6,1);x.fillRect(3,3,7,1)}
+  // seat cushion front over lap
+  paint(SEAT.map((r,i)=>i>=12?r:"............"),col);
+  // hands clapping on top of cushion
+  x.fillStyle=L.skin; x.fillRect(1,12,1,1); x.fillRect(10,12,1,1);
+  if(c.meeting){ // gold crown
+    x.fillStyle="#f4c542"; x.fillRect(4,0,1,1); x.fillRect(7,0,1,1); x.fillRect(4,1,4,1);
+  }
+}
+
+/* ---------- Storage ---------- */
+const local={load(){try{return JSON.parse(localStorage.getItem("fullhouse-px")||"null")||{calls:[],goal:75}}catch(e){return {calls:[],goal:75}}},
+  save(){try{localStorage.setItem("fullhouse-px",JSON.stringify({calls,goal}))}catch(e){}}};
+function useLocal(){
+  const d=local.load(); calls=d.calls||[]; goal=d.goal||75;
+  store={async put(c){const i=calls.findIndex(x=>x.id===c.id);if(i>=0)calls[i]=c;else calls.push(c);local.save();render()},
+    async del(id){calls=calls.filter(x=>x.id!==id);local.save();render()},
+    async setGoal(g){goal=g;local.save();render()}};
+  $("saveNote").textContent="Saved in this browser only"; render();
+}
+async function init(){
+  render();
+  let db=null;
+  try{db=window.claude&&window.claude.use?await window.claude.use("db"):null}catch(e){db=null}
+  if(!db){useLocal();return}
+  const col=db.collection("calls");
+  store={
+    async put(c){const {id,...b}=c; await col.doc(id).set(b)},
+    async del(id){await col.doc(id).delete()},
+    async setGoal(g){await db.doc("settings/main").set({goal:g})}
+  };
+  col.orderBy("ts","desc").limit(1000).onSnapshot(s=>{calls=s.docs.map(d=>({id:d.id,...d.data()}));$("saveNote").textContent="Saved to your account";render()},
+    ()=>{$("saveNote").textContent="Couldn't load saved calls. Reload to try again."});
+  db.doc("settings/main").onSnapshot(s=>{if(s.exists){goal=s.data().goal||75;render()}},()=>{});
+}
+
+/* ---------- Numbers ---------- */
+const dayCalls=d=>calls.filter(c=>c.day===d);
+function streak(){
+  const days=new Set(calls.map(c=>c.day)), d=new Date(); let n=0;
+  if(!days.has(dayKey(d))) d.setDate(d.getDate()-1);
+  for(let i=0;i<400;i++){const wd=d.getDay(); if(wd!==0&&wd!==6){if(days.has(dayKey(d)))n++;else break} d.setDate(d.getDate()-1)}
+  return n;
+}
+const ORDER=[7,6,8,5,9,4,10,3,11,2,12,1,13,0,14];
+const rowsFor=list=>Math.max(MIN_ROWS,Math.ceil((list.length+1)/PER_ROW));
+function nextFree(list){const t=new Set(list.map(c=>c.seat));for(let r=0;r<rowsFor(list);r++)for(const s of ORDER){const id=LETTERS[r]+(s+1);if(!t.has(id))return id}}
+
+/* ---------- Render ---------- */
+function labelFor(d){
+  if(d===today())return "Tonight";
+  const t=new Date();t.setDate(t.getDate()-1); if(d===dayKey(t))return "Last night";
+  const [y,m,dd]=d.split("-").map(Number); return new Date(y,m-1,dd).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
+}
+function render(){
+  const list=dayCalls(viewDay), isToday=viewDay===today();
+  $("nightLabel").textContent=labelFor(viewDay); $("next").disabled=isToday; $("addBtn").hidden=!isToday;
+  const meet=list.filter(c=>c.meeting).length;
+  $("sCalls").textContent=list.length; $("sGoal").textContent=goal; $("sMeet").textContent=meet;
+  $("sStreak").textContent=streak(); $("sAll").textContent=calls.length;
+  if(document.activeElement!==$("goalInput")) $("goalInput").value=goal;
+  const bar=$("bar"); bar.innerHTML="";
+  for(let i=0;i<Math.min(goal,40);i++){const b=document.createElement("i"); if(i<Math.round(list.length/goal*Math.min(goal,40)))b.className="on"; bar.appendChild(b)}
+  const left=goal-list.length;
+  $("hint").textContent=!isToday?`${list.length} in the audience, ${meet} meeting${meet===1?"":"s"} booked.`
+    :list.length===0?"Made a call? Click a seat."
+    :left>0?`${left} more for a full house.`:`Full house! Every extra call is an encore.`;
+
+  const bySeat=Object.fromEntries(list.map(c=>[c.seat,c]));
+  const host=$("rows"); host.innerHTML="";
+  for(let r=0;r<rowsFor(list);r++){
+    const row=document.createElement("div"); row.className="row";
+    const l=document.createElement("span"); l.className="rowlbl"; l.textContent=LETTERS[r]; row.appendChild(l);
+    for(let s=0;s<PER_ROW;s++){
+      if(s===5||s===10){const a=document.createElement("span");a.className="aisle";row.appendChild(a)}
+      const id=LETTERS[r]+(s+1), c=bySeat[id];
+      const b=document.createElement("button"); b.type="button";
+      b.className="seat "+(c?"has":"empty")+(c&&c.id===justAdded?" drop":"");
+      const d=Math.abs(s-7); b.style.marginBottom=Math.round(d*d*.25)+"px";
+      const cv=document.createElement("canvas"); cv.width=12; cv.height=16; drawSeat(cv,c); b.appendChild(cv);
+      if(c&&c.note){const dot=document.createElement("span");dot.className="dot";dot.title="Has a note";b.appendChild(dot)}
+      b.setAttribute("aria-label",c?`Seat ${id}, taken${c.meeting?", meeting booked":""}. Open notes`:`Seat ${id}, empty`);
+      if(!c&&!isToday) b.disabled=true;
+      b.onclick=()=>c?openCard(c):addAt(id);
+      row.appendChild(b);
+    }
+    row.appendChild(l.cloneNode(true)); host.appendChild(row);
+  }
+  justAdded=null;
+}
+
+/* ---------- Actions ---------- */
+async function addAt(seat){
+  const before=dayCalls(today()).length;
+  const c={id:"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),day:today(),seat,ts:Date.now(),look:newLook(),note:"",meeting:false};
+  justAdded=c.id;
+  try{await store.put(c)}catch(e){toast("That seat didn't save. Try again.");return}
+  const n=before+1;
+  if(n===goal){celebrate(true);toast("FULL HOUSE! Goal hit.",c.id)}
+  else{const row=n%PER_ROW===0; clap(row?.6:.25); if(row)celebrate(false); toast(row?`Row filled! ${n} tonight`:`Seat ${seat} filled · ${n} tonight`,c.id)}
+}
+$("addBtn").onclick=()=>addAt(nextFree(dayCalls(today())));
+
+let undoId=null;
+function toast(msg,id){
+  $("toastMsg").textContent=msg; undoId=id||null; $("undoBtn").hidden=!id; $("toast").hidden=false;
+  clearTimeout(toast.h); toast.h=setTimeout(()=>{$("toast").hidden=true;undoId=null},3500);
+}
+$("undoBtn").onclick=async()=>{if(undoId){try{await store.del(undoId)}catch(e){}} $("toast").hidden=true; undoId=null};
+
+function openCard(c){
+  open={...c}; $("cSeat").textContent="Seat "+c.seat; $("cNote").value=c.note||"";
+  $("cMeet").setAttribute("aria-pressed",String(!!c.meeting)); drawSeat($("cSprite"),c);
+  $("cDel").textContent="Remove"; $("cDel").dataset.armed="";
+  $("scrim").hidden=false; setTimeout(()=>$("cNote").focus(),30);
+}
+const closeCard=()=>{$("scrim").hidden=true;open=null};
+$("cClose").onclick=closeCard;
+$("scrim").addEventListener("click",e=>{if(e.target===$("scrim"))closeCard()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("scrim").hidden)closeCard()});
+$("cMeet").onclick=()=>{open.meeting=!open.meeting;$("cMeet").setAttribute("aria-pressed",String(open.meeting));drawSeat($("cSprite"),open)};
+$("cSave").onclick=async()=>{
+  const was=(calls.find(x=>x.id===open.id)||{}).meeting;
+  open.note=$("cNote").value.trim();
+  try{await store.put(open)}catch(e){toast("Couldn't save that. Try again.");return}
+  if(open.meeting&&!was){celebrate(true);toast("Meeting booked! Standing ovation.")}
+  closeCard();
+};
+$("cDel").onclick=async()=>{
+  if(!$("cDel").dataset.armed){$("cDel").dataset.armed="1";$("cDel").textContent="Click again to remove";return}
+  try{await store.del(open.id);closeCard()}catch(e){toast("Couldn't remove. Try again.")}
+};
+
+function shift(n){const [y,m,d]=viewDay.split("-").map(Number);const k=dayKey(new Date(y,m-1,d+n));if(k<=today()){viewDay=k;render()}}
+$("prev").onclick=()=>shift(-1); $("next").onclick=()=>shift(1);
+let gt; $("goalInput").addEventListener("input",()=>{clearTimeout(gt);gt=setTimeout(()=>{const g=Math.max(1,Math.min(200,parseInt($("goalInput").value)||75));if(g!==goal&&store)store.setGoal(g)},600)});
+$("soundBtn").onclick=()=>{soundOn=!soundOn;$("soundBtn").setAttribute("aria-pressed",String(soundOn));$("soundBtn").textContent="Sound: "+(soundOn?"on":"off")};
+
+/* ---------- Sound & confetti ---------- */
+let actx=null;
+function clap(intensity){
+  if(!soundOn)return;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const now=actx.currentTime, dur=.5+intensity*1.8, n=Math.round(8+intensity*90);
+    const len=Math.floor(actx.sampleRate*.04), buf=actx.createBuffer(1,len,actx.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,6);
+    for(let i=0;i<n;i++){const t=now+Math.random()*dur;const s=actx.createBufferSource();s.buffer=buf;s.playbackRate.value=.8+Math.random()*.6;
+      const f=actx.createBiquadFilter();f.type="bandpass";f.frequency.value=900+Math.random()*1500;const g=actx.createGain();g.gain.value=.25;
+      s.connect(f).connect(g).connect(actx.destination);s.start(t)}
+    // 8-bit ding
+    const o=actx.createOscillator(),g=actx.createGain();o.type="square";o.frequency.setValueAtTime(880,now);o.frequency.setValueAtTime(1320,now+.08);
+    g.gain.setValueAtTime(.05,now);g.gain.exponentialRampToValueAtTime(.001,now+.25);o.connect(g).connect(actx.destination);o.start(now);o.stop(now+.26);
+  }catch(e){}
+}
+function celebrate(big){
+  clap(big?1:.6);
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const cv=$("confetti"),x=cv.getContext("2d"),S=4; cv.width=Math.ceil(innerWidth/S); cv.height=Math.ceil(innerHeight/S);
+  cv.style.width=innerWidth+"px"; cv.style.height=innerHeight+"px";
+  const cols=["#f4c542","#f6ead2","#8a1c32","#3fa29a","#5b7fd6"];
+  const ps=Array.from({length:big?140:60},()=>({x:Math.random()*cv.width,y:-Math.random()*cv.height*.5,vy:.5+Math.random()*.9,vx:(Math.random()-.5)*.4,c:pick(cols)}));
+  let f=0;(function step(){x.clearRect(0,0,cv.width,cv.height);for(const p of ps){p.x+=p.vx;p.y+=p.vy;x.fillStyle=p.c;x.fillRect(Math.round(p.x),Math.round(p.y),1+(f>>3&1),1)}if(++f<200)requestAnimationFrame(step);else x.clearRect(0,0,cv.width,cv.height)})();
+}
+
+init();
+</script>
+</body>
+</html>
